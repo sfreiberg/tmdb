@@ -26,12 +26,12 @@ type FindResponse struct {
 }
 
 // FindByIMDB looks up a movie by its IMDB ID and returns the TMDB ID
-// and basic info. Returns nil if not found.
+// and basic info. If nothing matches, MovieResults is empty.
 func (c *Client) FindByIMDB(ctx context.Context, imdbID string) (*FindResponse, error) {
 	v := url.Values{}
 	v.Set("api_key", c.key)
 	v.Set("external_source", "imdb_id")
-	u := fmt.Sprintf("%s/find/%s?%s", tmdbURL, imdbID, v.Encode())
+	u := fmt.Sprintf("%s/find/%s?%s", c.baseURL, url.PathEscape(imdbID), v.Encode())
 	r := new(FindResponse)
 
 	if err := c.get(ctx, u, r); err != nil {
@@ -62,7 +62,7 @@ func (c *Client) MovieWithCredits(ctx context.Context, id int) (*MovieWithCredit
 	v := url.Values{}
 	v.Set("api_key", c.key)
 	v.Set("append_to_response", "credits")
-	u := fmt.Sprintf("%s/movie/%v?%s", tmdbURL, id, v.Encode())
+	u := fmt.Sprintf("%s/movie/%v?%s", c.baseURL, id, v.Encode())
 	r := new(MovieWithCreditsResponse)
 
 	if err := c.get(ctx, u, r); err != nil {

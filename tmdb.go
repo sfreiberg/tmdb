@@ -6,16 +6,18 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"strconv"
 )
 
 const tmdbURL = "https://api.themoviedb.org/3"
 
 type Client struct {
-	key string
+	key     string
+	baseURL string
 }
 
 func New(key string) *Client {
-	return &Client{key: key}
+	return &Client{key: key, baseURL: tmdbURL}
 }
 
 type SearchMoviesOptions struct {
@@ -39,9 +41,7 @@ func (o *SearchMoviesOptions) values() url.Values {
 	if o.Page != 0 {
 		v.Set("page", fmt.Sprintf("%v", o.Page))
 	}
-	if !o.IncludeAdult {
-		v.Set("include_adult", "false")
-	}
+	v.Set("include_adult", strconv.FormatBool(o.IncludeAdult))
 	if o.Region != "" {
 		v.Set("region", o.Region)
 	}
@@ -79,7 +79,7 @@ type SearchMoviesResponse struct {
 func (c *Client) SearchMovies(ctx context.Context, opts *SearchMoviesOptions) (*SearchMoviesResponse, error) {
 	v := opts.values()
 	v.Set("api_key", c.key)
-	u := fmt.Sprintf("%s/search/movie?%s", tmdbURL, v.Encode())
+	u := fmt.Sprintf("%s/search/movie?%s", c.baseURL, v.Encode())
 	r := new(SearchMoviesResponse)
 
 	if err := c.get(ctx, u, r); err != nil {
@@ -139,7 +139,7 @@ type MovieResponse struct {
 func (c *Client) Movie(ctx context.Context, id int) (*MovieResponse, error) {
 	v := url.Values{}
 	v.Set("api_key", c.key)
-	u := fmt.Sprintf("%s/movie/%v?%s", tmdbURL, id, v.Encode())
+	u := fmt.Sprintf("%s/movie/%v?%s", c.baseURL, id, v.Encode())
 	r := new(MovieResponse)
 
 	if err := c.get(ctx, u, r); err != nil {
@@ -148,12 +148,36 @@ func (c *Client) Movie(ctx context.Context, id int) (*MovieResponse, error) {
 	return r, nil
 }
 
-func (c *Client) get(ctx context.Context, url string, respObj interface{}) error {
-	resp, err := http.Get(url)
+// APIError is returned when TMDB responds with a non-2xx status code.
+type APIError struct {
+	StatusCode    int    `json:"-"`              // HTTP status code
+	StatusMessage string `json:"status_message"` // TMDB's error message, if any
+}
+
+func (e *APIError) Error() string {
+	if e.StatusMessage != "" {
+		return fmt.Sprintf("tmdb: HTTP %d: %s", e.StatusCode, e.StatusMessage)
+	}
+	return fmt.Sprintf("tmdb: HTTP %d", e.StatusCode)
+}
+
+func (c *Client) get(ctx context.Context, url string, respObj any) error {
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+	if err != nil {
+		return err
+	}
+	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		return err
 	}
 	defer resp.Body.Close()
+
+	if resp.StatusCode < 200 || resp.StatusCode > 299 {
+		apiErr := &APIError{}
+		_ = json.NewDecoder(resp.Body).Decode(apiErr) // best effort
+		apiErr.StatusCode = resp.StatusCode
+		return apiErr
+	}
 
 	return json.NewDecoder(resp.Body).Decode(respObj)
 }

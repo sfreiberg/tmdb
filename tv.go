@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net/url"
+	"strconv"
 )
 
 type SearchTVOptions struct {
@@ -25,9 +26,7 @@ func (o *SearchTVOptions) values() url.Values {
 	if o.Page != 0 {
 		v.Set("page", fmt.Sprintf("%v", o.Page))
 	}
-	if !o.IncludeAdult {
-		v.Set("include_adult", "false")
-	}
+	v.Set("include_adult", strconv.FormatBool(o.IncludeAdult))
 	if o.FirstAirDateYear != 0 {
 		v.Set("first_air_date_year", fmt.Sprintf("%v", o.FirstAirDateYear))
 	}
@@ -37,20 +36,20 @@ func (o *SearchTVOptions) values() url.Values {
 type SearchTVResponse struct {
 	Page    int `json:"page"`
 	Results []struct {
-		Adult            bool    `json:"adult"`
-		BackdropPath     string  `json:"backdrop_path"`
-		GenreIds         []int   `json:"genre_ids"`
-		ID               int     `json:"id"`
-		OriginalLanguage string  `json:"original_language"`
-		OriginalName     string  `json:"original_name"`
-		Overview         string  `json:"overview"`
-		Popularity       float64 `json:"popularity"`
-		PosterPath       string  `json:"poster_path"`
-		FirstAirDate     string  `json:"first_air_date,omitempty"`
-		Name             string  `json:"name"`
+		Adult            bool     `json:"adult"`
+		BackdropPath     string   `json:"backdrop_path"`
+		GenreIds         []int    `json:"genre_ids"`
+		ID               int      `json:"id"`
+		OriginalLanguage string   `json:"original_language"`
+		OriginalName     string   `json:"original_name"`
+		Overview         string   `json:"overview"`
+		Popularity       float64  `json:"popularity"`
+		PosterPath       string   `json:"poster_path"`
+		FirstAirDate     string   `json:"first_air_date,omitempty"`
+		Name             string   `json:"name"`
 		OriginCountry    []string `json:"origin_country"`
-		VoteAverage      float64 `json:"vote_average"`
-		VoteCount        int     `json:"vote_count"`
+		VoteAverage      float64  `json:"vote_average"`
+		VoteCount        int      `json:"vote_count"`
 	} `json:"results"`
 	TotalPages   int `json:"total_pages"`
 	TotalResults int `json:"total_results"`
@@ -59,7 +58,7 @@ type SearchTVResponse struct {
 func (c *Client) SearchTV(ctx context.Context, opts *SearchTVOptions) (*SearchTVResponse, error) {
 	v := opts.values()
 	v.Set("api_key", c.key)
-	u := fmt.Sprintf("%s/search/tv?%s", tmdbURL, v.Encode())
+	u := fmt.Sprintf("%s/search/tv?%s", c.baseURL, v.Encode())
 	r := new(SearchTVResponse)
 
 	if err := c.get(ctx, u, r); err != nil {
@@ -117,28 +116,28 @@ type TVResponse struct {
 		ID   int    `json:"id"`
 		Name string `json:"name"`
 	} `json:"genres"`
-	Homepage         string      `json:"homepage"`
-	ID               int         `json:"id"`
-	InProduction     bool        `json:"in_production"`
-	Languages        []string    `json:"languages"`
-	LastAirDate      string      `json:"last_air_date"`
-	LastEpisodeToAir *TVEpisode  `json:"last_episode_to_air"`
-	NextEpisodeToAir *TVEpisode  `json:"next_episode_to_air"`
-	Name             string      `json:"name"`
+	Homepage         string     `json:"homepage"`
+	ID               int        `json:"id"`
+	InProduction     bool       `json:"in_production"`
+	Languages        []string   `json:"languages"`
+	LastAirDate      string     `json:"last_air_date"`
+	LastEpisodeToAir *TVEpisode `json:"last_episode_to_air"`
+	NextEpisodeToAir *TVEpisode `json:"next_episode_to_air"`
+	Name             string     `json:"name"`
 	Networks         []struct {
 		ID            int    `json:"id"`
 		Name          string `json:"name"`
 		LogoPath      string `json:"logo_path"`
 		OriginCountry string `json:"origin_country"`
 	} `json:"networks"`
-	NumberOfEpisodes int      `json:"number_of_episodes"`
-	NumberOfSeasons  int      `json:"number_of_seasons"`
-	OriginCountry    []string `json:"origin_country"`
-	OriginalLanguage string   `json:"original_language"`
-	OriginalName     string   `json:"original_name"`
-	Overview         string   `json:"overview"`
-	Popularity       float64  `json:"popularity"`
-	PosterPath       string   `json:"poster_path"`
+	NumberOfEpisodes    int      `json:"number_of_episodes"`
+	NumberOfSeasons     int      `json:"number_of_seasons"`
+	OriginCountry       []string `json:"origin_country"`
+	OriginalLanguage    string   `json:"original_language"`
+	OriginalName        string   `json:"original_name"`
+	Overview            string   `json:"overview"`
+	Popularity          float64  `json:"popularity"`
+	PosterPath          string   `json:"poster_path"`
 	ProductionCompanies []struct {
 		ID            int    `json:"id"`
 		LogoPath      string `json:"logo_path"`
@@ -160,7 +159,7 @@ func (c *Client) TV(ctx context.Context, id int) (*TVResponse, error) {
 	v := url.Values{}
 	v.Set("api_key", c.key)
 	v.Set("append_to_response", "external_ids")
-	u := fmt.Sprintf("%s/tv/%v?%s", tmdbURL, id, v.Encode())
+	u := fmt.Sprintf("%s/tv/%v?%s", c.baseURL, id, v.Encode())
 	r := new(TVResponse)
 
 	if err := c.get(ctx, u, r); err != nil {
