@@ -11,11 +11,12 @@ import (
 const tmdbURL = "https://api.themoviedb.org/3"
 
 type Client struct {
-	key string
+	key     string
+	baseURL string
 }
 
 func New(key string) *Client {
-	return &Client{key: key}
+	return &Client{key: key, baseURL: tmdbURL}
 }
 
 type SearchMoviesOptions struct {
@@ -79,7 +80,7 @@ type SearchMoviesResponse struct {
 func (c *Client) SearchMovies(ctx context.Context, opts *SearchMoviesOptions) (*SearchMoviesResponse, error) {
 	v := opts.values()
 	v.Set("api_key", c.key)
-	u := fmt.Sprintf("%s/search/movie?%s", tmdbURL, v.Encode())
+	u := fmt.Sprintf("%s/search/movie?%s", c.baseURL, v.Encode())
 	r := new(SearchMoviesResponse)
 
 	if err := c.get(ctx, u, r); err != nil {
@@ -139,7 +140,7 @@ type MovieResponse struct {
 func (c *Client) Movie(ctx context.Context, id int) (*MovieResponse, error) {
 	v := url.Values{}
 	v.Set("api_key", c.key)
-	u := fmt.Sprintf("%s/movie/%v?%s", tmdbURL, id, v.Encode())
+	u := fmt.Sprintf("%s/movie/%v?%s", c.baseURL, id, v.Encode())
 	r := new(MovieResponse)
 
 	if err := c.get(ctx, u, r); err != nil {

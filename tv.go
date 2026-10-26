@@ -59,7 +59,7 @@ type SearchTVResponse struct {
 func (c *Client) SearchTV(ctx context.Context, opts *SearchTVOptions) (*SearchTVResponse, error) {
 	v := opts.values()
 	v.Set("api_key", c.key)
-	u := fmt.Sprintf("%s/search/tv?%s", tmdbURL, v.Encode())
+	u := fmt.Sprintf("%s/search/tv?%s", c.baseURL, v.Encode())
 	r := new(SearchTVResponse)
 
 	if err := c.get(ctx, u, r); err != nil {
@@ -160,7 +160,7 @@ func (c *Client) TV(ctx context.Context, id int) (*TVResponse, error) {
 	v := url.Values{}
 	v.Set("api_key", c.key)
 	v.Set("append_to_response", "external_ids")
-	u := fmt.Sprintf("%s/tv/%v?%s", tmdbURL, id, v.Encode())
+	u := fmt.Sprintf("%s/tv/%v?%s", c.baseURL, id, v.Encode())
 	r := new(TVResponse)
 
 	if err := c.get(ctx, u, r); err != nil {

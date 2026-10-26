@@ -6,10 +6,12 @@ import (
 	"testing"
 )
 
-func TestMovie(t *testing.T) {
+// TestLiveSearchAndMovie exercises the real TMDB API. It is skipped unless
+// TMDB_KEY is set.
+func TestLiveSearchAndMovie(t *testing.T) {
 	apiKey := os.Getenv("TMDB_KEY")
 	if apiKey == "" {
-		t.Fatal("TMDB_KEY is not set")
+		t.Skip("TMDB_KEY is not set; skipping live API test")
 	}
 	client := New(apiKey)
 	opts := &SearchMoviesOptions{Query: "john wick", Year: 2014}

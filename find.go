@@ -31,7 +31,7 @@ func (c *Client) FindByIMDB(ctx context.Context, imdbID string) (*FindResponse, 
 	v := url.Values{}
 	v.Set("api_key", c.key)
 	v.Set("external_source", "imdb_id")
-	u := fmt.Sprintf("%s/find/%s?%s", tmdbURL, imdbID, v.Encode())
+	u := fmt.Sprintf("%s/find/%s?%s", c.baseURL, imdbID, v.Encode())
 	r := new(FindResponse)
 
 	if err := c.get(ctx, u, r); err != nil {
@@ -62,7 +62,7 @@ func (c *Client) MovieWithCredits(ctx context.Context, id int) (*MovieWithCredit
 	v := url.Values{}
 	v.Set("api_key", c.key)
 	v.Set("append_to_response", "credits")
-	u := fmt.Sprintf("%s/movie/%v?%s", tmdbURL, id, v.Encode())
+	u := fmt.Sprintf("%s/movie/%v?%s", c.baseURL, id, v.Encode())
 	r := new(MovieWithCreditsResponse)
 
 	if err := c.get(ctx, u, r); err != nil {
