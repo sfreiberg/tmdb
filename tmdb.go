@@ -148,7 +148,7 @@ func (c *Client) Movie(ctx context.Context, id int) (*MovieResponse, error) {
 	return r, nil
 }
 
-func (c *Client) get(ctx context.Context, url string, respObj interface{}) error {
+func (c *Client) get(ctx context.Context, url string, respObj any) error {
 	resp, err := http.Get(url)
 	if err != nil {
 		return err
