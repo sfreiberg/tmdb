@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"strconv"
 )
 
 const tmdbURL = "https://api.themoviedb.org/3"
@@ -40,9 +41,7 @@ func (o *SearchMoviesOptions) values() url.Values {
 	if o.Page != 0 {
 		v.Set("page", fmt.Sprintf("%v", o.Page))
 	}
-	if !o.IncludeAdult {
-		v.Set("include_adult", "false")
-	}
+	v.Set("include_adult", strconv.FormatBool(o.IncludeAdult))
 	if o.Region != "" {
 		v.Set("region", o.Region)
 	}
@@ -149,12 +148,36 @@ func (c *Client) Movie(ctx context.Context, id int) (*MovieResponse, error) {
 	return r, nil
 }
 
+// APIError is returned when TMDB responds with a non-2xx status code.
+type APIError struct {
+	StatusCode    int    `json:"-"`              // HTTP status code
+	StatusMessage string `json:"status_message"` // TMDB's error message, if any
+}
+
+func (e *APIError) Error() string {
+	if e.StatusMessage != "" {
+		return fmt.Sprintf("tmdb: HTTP %d: %s", e.StatusCode, e.StatusMessage)
+	}
+	return fmt.Sprintf("tmdb: HTTP %d", e.StatusCode)
+}
+
 func (c *Client) get(ctx context.Context, url string, respObj any) error {
-	resp, err := http.Get(url)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+	if err != nil {
+		return err
+	}
+	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		return err
 	}
 	defer resp.Body.Close()
+
+	if resp.StatusCode < 200 || resp.StatusCode > 299 {
+		apiErr := &APIError{}
+		_ = json.NewDecoder(resp.Body).Decode(apiErr) // best effort
+		apiErr.StatusCode = resp.StatusCode
+		return apiErr
+	}
 
 	return json.NewDecoder(resp.Body).Decode(respObj)
 }

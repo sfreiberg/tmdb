@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net/url"
+	"strconv"
 )
 
 type SearchTVOptions struct {
@@ -25,9 +26,7 @@ func (o *SearchTVOptions) values() url.Values {
 	if o.Page != 0 {
 		v.Set("page", fmt.Sprintf("%v", o.Page))
 	}
-	if !o.IncludeAdult {
-		v.Set("include_adult", "false")
-	}
+	v.Set("include_adult", strconv.FormatBool(o.IncludeAdult))
 	if o.FirstAirDateYear != 0 {
 		v.Set("first_air_date_year", fmt.Sprintf("%v", o.FirstAirDateYear))
 	}

@@ -219,3 +219,50 @@ func TestTV(t *testing.T) {
 		t.Errorf("unexpected external ids: %+v", tv.ExternalIDs)
 	}
 }
+
+func TestIncludeAdultTrueIsSent(t *testing.T) {
+	if got := (&SearchMoviesOptions{Query: "x", IncludeAdult: true}).values().Get("include_adult"); got != "true" {
+		t.Errorf("movies include_adult = %q; want true", got)
+	}
+	if got := (&SearchTVOptions{Query: "x", IncludeAdult: true}).values().Get("include_adult"); got != "true" {
+		t.Errorf("tv include_adult = %q; want true", got)
+	}
+}
+
+func TestFindByIMDBEscapesID(t *testing.T) {
+	c, reqs := newTestClient(t, `{"movie_results": []}`)
+	if _, err := c.FindByIMDB(context.Background(), "tt1/../../movie/1"); err != nil {
+		t.Fatal(err)
+	}
+	if u := <-reqs; u.Path != "/find/tt1/../../movie/1" || u.RawPath != "/find/tt1%2F..%2F..%2Fmovie%2F1" {
+		t.Errorf("id was not path-escaped: path=%q raw=%q", u.Path, u.RawPath)
+	}
+}
+
+func TestErrorStatus(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusUnauthorized)
+		w.Write([]byte(`{"status_code": 7, "status_message": "Invalid API key: You must be granted a valid key."}`))
+	}))
+	defer srv.Close()
+	c := New("bad")
+	c.baseURL = srv.URL
+
+	_, err := c.Movie(context.Background(), 1)
+	apiErr, ok := err.(*APIError)
+	if !ok {
+		t.Fatalf("err = %v (%T); want *APIError", err, err)
+	}
+	if apiErr.StatusCode != http.StatusUnauthorized || apiErr.StatusMessage == "" {
+		t.Errorf("unexpected APIError: %+v", apiErr)
+	}
+}
+
+func TestContextIsHonored(t *testing.T) {
+	c, _ := newTestClient(t, `{}`)
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	if _, err := c.Movie(ctx, 1); err == nil {
+		t.Fatal("expected an error from a canceled context")
+	}
+}
